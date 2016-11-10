@@ -2,6 +2,7 @@
 """
 simulate splits
 """
+import os
 import argparse
 import numpy as np
 import pandas as pd
@@ -12,11 +13,12 @@ import time
 parser = argparse.ArgumentParser(description='Simulate the SN in params file using the Opsim pointings')
 parser.add_argument('paramFile', type=str, help='parameter File for SN')
 parser.add_argument('OpSimDBPath', type=str, help='absolute path to  OpSim Database')
-parser.add_argument('--outfile', type=str, help='absolute path to outfile')
-parser.add_argument('--logfile', type=str, help='absolute path to logfile')
+parser.add_argument('outfile', type=str, help='absolute path to outfile')
+parser.add_argument('logfile', type=str, help='absolute path to logfile')
+parser.add_argument('--summaryDir', type=str, default='data/dones', help='absolute path to logfile')
 args = parser.parse_args()
 engine = create_engine('sqlite:///' + args.OpSimDBPath)
-def simulate_SN(paramFile, pointings, outfile, logfile):
+def simulate_SN(paramFile, pointings, outfile, logfile, summaryDir=None):
     tstart = time.time()
     print(paramFile)
     i = int(paramFile.split('_')[-1].split('.')[0])
@@ -35,10 +37,16 @@ def simulate_SN(paramFile, pointings, outfile, logfile):
             with open(logfile, 'w') as lf:
                 lf.write('Written {} lightcurves'.format(i))
     tend = time.time()
+    if summaryDir is not None:
+        if not os.path.exists(summaryDir):
+            os.makedirs(summaryDir)
+        with open(summaryDir/str(i)) as f:
+            f.write('DONE')
     return tend - tstart
 
 pts = pd.read_sql_query('SELECT * FROM Summary WHERE FieldID == 1427', engine)
 pts.drop_duplicates(subset='obsHistID', inplace=True)
 outhdf = args.outfile
 logfile = args.logfile
-simulate_SN(args.paramFile, pts, outhdf, logfile)
+DoneDir = args.summaryDir
+simulate_SN(args.paramFile, pts, outhdf, logfile, DoneDir)
